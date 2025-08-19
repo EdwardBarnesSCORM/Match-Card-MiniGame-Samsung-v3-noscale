@@ -7,31 +7,27 @@
 <style>
   :root { --w:382px; --h:780px; --scale:1; }
   body {
-    margin:0; 
-    font-family:system-ui, Arial, sans-serif; 
-    text-align:center; 
-    padding:2rem; 
+    margin:0;
+    font-family:system-ui, Arial, sans-serif;
+    text-align:center;
+    padding:2rem;
     background:#f8f8f8;
   }
 
   h1 { margin-top:0; }
-  .btn { 
-    padding:.75rem 1.25rem; 
-    border:0; 
-    border-radius:10px; 
-    background:#111; 
-    color:#fff; 
-    font-size:1rem; 
-    cursor:pointer; 
+  .btn {
+    padding:.75rem 1.25rem;
+    border:0; border-radius:10px;
+    background:#111; color:#fff; font-size:1rem; cursor:pointer;
   }
 
-  /* overlay */
+  /* Lightbox overlay */
   .lightbox {
     position: fixed; inset: 0;
     display: none; align-items: center; justify-content: center;
     background: rgba(0,0,0,.72);
     z-index: 9999;
-    overflow:hidden; /* prevent any overspill */
+    overflow:hidden; /* no bleed */
     padding:
       max(16px, env(safe-area-inset-top))
       max(16px, env(safe-area-inset-right))
@@ -40,7 +36,7 @@
   }
   .lightbox.active { display:flex; }
 
-  /* stage scales from center */
+  /* Fixed-size stage that scales from CENTER */
   .stage {
     position: relative;
     width: var(--w); height: var(--h);
@@ -51,11 +47,9 @@
     box-sizing: border-box;
   }
 
-  .stage iframe { 
-    width:var(--w); 
-    height:var(--h); 
-    border:0; 
-    display:block; 
+  .stage iframe {
+    width:var(--w); height:var(--h);
+    border:0; display:block;
   }
 
   .close {
@@ -67,7 +61,7 @@
 </head>
 <body>
   <h1>Play the Samsung Memory Game</h1>
-  <p>Click below to launch the game in a centered lightbox.</p>
+  <p>Opens in a centered lightbox and auto-fits on mobile.</p>
   <button class="btn" id="open">Open Game</button>
 
   <div class="lightbox" id="box" aria-hidden="true">
@@ -80,7 +74,6 @@
 
 <script>
   const box   = document.getElementById('box');
-  const stage = document.getElementById('stage');
   const openB = document.getElementById('open');
   const closeB= document.getElementById('close');
 
@@ -96,35 +89,37 @@
   function fit() {
     const { w, h } = viewportSize();
 
-    // read actual overlay padding (safe-area included)
-    const cs = getComputedStyle(box);
+    // Read overlay padding (includes safe-area) and subtract a tiny hard margin
+    const cs   = getComputedStyle(box);
     const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
     const padY = parseFloat(cs.paddingTop)  + parseFloat(cs.paddingBottom);
+    const MARGIN = 2; // 2 CSS px to beat rounding at various DPRs
 
-    const availW = Math.max(0, w - padX);
-    const availH = Math.max(0, h - padY);
+    const availW = Math.max(0, w - padX - MARGIN);
+    const availH = Math.max(0, h - padY - MARGIN);
 
-    // epsilon prevents fractional overflow
-    const EPS = 0.995;
+    // Epsilon keeps scale a hair under the theoretical max
+    const EPS = 0.998;
     const scale = Math.min(availW / W, availH / H, 1) * EPS;
 
     document.documentElement.style.setProperty('--scale', String(scale));
   }
 
-  openB.addEventListener('click', () => { 
-    box.classList.add('active'); 
-    box.setAttribute('aria-hidden','false'); 
-    fit(); 
-  });
-  closeB.addEventListener('click', () => { 
-    box.classList.remove('active'); 
-    box.setAttribute('aria-hidden','true'); 
+  openB.addEventListener('click', () => {
+    box.classList.add('active');
+    box.setAttribute('aria-hidden','false');
+    fit();
   });
 
-  // close on overlay tap
+  closeB.addEventListener('click', () => {
+    box.classList.remove('active');
+    box.setAttribute('aria-hidden','true');
+  });
+
+  // Close when tapping outside the stage
   box.addEventListener('click', e => { if (e.target === box) closeB.click(); });
 
-  // refit on resize / rotate / URL bar slide
+  // Keep fitted on rotate/resize/URL bar movement
   window.addEventListener('resize', fit);
   window.addEventListener('orientationchange', fit);
   if (window.visualViewport) {

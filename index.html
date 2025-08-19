@@ -6,10 +6,24 @@
 <title>Samsung Memory Game</title>
 <style>
   :root { --w:382px; --h:780px; --scale:1; }
-  body { margin:0; font-family:system-ui, Arial, sans-serif; text-align:center; padding:2rem; background:#f8f8f8; }
+  body {
+    margin:0; 
+    font-family:system-ui, Arial, sans-serif; 
+    text-align:center; 
+    padding:2rem; 
+    background:#f8f8f8;
+  }
 
   h1 { margin-top:0; }
-  .btn { padding:.75rem 1.25rem; border:0; border-radius:10px; background:#111; color:#fff; font-size:1rem; cursor:pointer; }
+  .btn { 
+    padding:.75rem 1.25rem; 
+    border:0; 
+    border-radius:10px; 
+    background:#111; 
+    color:#fff; 
+    font-size:1rem; 
+    cursor:pointer; 
+  }
 
   /* overlay */
   .lightbox {
@@ -17,6 +31,7 @@
     display: none; align-items: center; justify-content: center;
     background: rgba(0,0,0,.72);
     z-index: 9999;
+    overflow:hidden; /* prevent any overspill */
     padding:
       max(16px, env(safe-area-inset-top))
       max(16px, env(safe-area-inset-right))
@@ -33,9 +48,15 @@
     box-shadow:0 20px 60px rgba(0,0,0,.6);
     transform: scale(var(--scale));
     transform-origin: center center;
+    box-sizing: border-box;
   }
 
-  .stage iframe { width:var(--w); height:var(--h); border:0; display:block; }
+  .stage iframe { 
+    width:var(--w); 
+    height:var(--h); 
+    border:0; 
+    display:block; 
+  }
 
   .close {
     position:absolute; top:10px; right:12px; z-index:2;
@@ -64,21 +85,30 @@
   const closeB= document.getElementById('close');
 
   const W = 382, H = 780;
-  const EDGE = 24; // breathing room from edges
 
   function viewportSize() {
     const vv = window.visualViewport;
-    return vv ? { w: vv.width, h: vv.height } :
-                { w: document.documentElement.clientWidth,
+    return vv ? { w: vv.width, h: vv.height }
+              : { w: document.documentElement.clientWidth,
                   h: document.documentElement.clientHeight };
   }
 
   function fit() {
     const { w, h } = viewportSize();
-    const maxW = Math.max(0, w - EDGE*2);
-    const maxH = Math.max(0, h - EDGE*2);
-    const scale = Math.min(maxW / W, maxH / H, 1); // never upscale
-    document.documentElement.style.setProperty('--scale', scale.toString());
+
+    // read actual overlay padding (safe-area included)
+    const cs = getComputedStyle(box);
+    const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+    const padY = parseFloat(cs.paddingTop)  + parseFloat(cs.paddingBottom);
+
+    const availW = Math.max(0, w - padX);
+    const availH = Math.max(0, h - padY);
+
+    // epsilon prevents fractional overflow
+    const EPS = 0.995;
+    const scale = Math.min(availW / W, availH / H, 1) * EPS;
+
+    document.documentElement.style.setProperty('--scale', String(scale));
   }
 
   openB.addEventListener('click', () => { 

@@ -2,90 +2,74 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
 <title>Game Lightbox</title>
 <style>
-  :root { --w: 382px; --h: 780px; }
-  body { font-family: system-ui, Arial, sans-serif; margin:0; padding:2rem; text-align:center; }
-  .btn { padding:0.7rem 1rem; border:0; border-radius:10px; cursor:pointer; font-size:1rem; }
-  .btn-primary { background:#111; color:#fff; }
-  .hint { color:#555; margin-top:0.75rem; font-size:0.9rem; }
+  :root { --w:382px; --h:780px; }
+  body { margin:0; font-family:system-ui, Arial, sans-serif; text-align:center; padding:2rem; }
 
-  /* Lightbox overlay */
-  .lightbox {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.72);
-    display: none; align-items: center; justify-content: center;
-    z-index: 9999; padding: 2rem;
-  }
-  .lightbox.active { display: flex; }
+  .btn { padding:.75rem 1rem; border:0; border-radius:10px; background:#111; color:#fff; font-size:1rem; cursor:pointer; }
 
-  /* Lightbox content shell (exact size) */
-  .lightbox-content {
-    position: relative; background:#000; border-radius:12px; overflow:hidden;
-    width: var(--w); height: var(--h); box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-  }
+  /* overlay */
+  .lightbox { position:fixed; inset:0; background:rgba(0,0,0,.72); display:none; z-index:9999; }
+  .lightbox.active { display:block; }
 
-  /* Close button */
-  .close-btn {
-    position: absolute; top:8px; right:10px; line-height:1;
-    padding:6px 10px; border-radius:8px; background: rgba(0,0,0,0.6);
-    color:#fff; border:0; cursor:pointer; font-size:16px; z-index:1;
+  /* the fixed‑size stage wrapper we scale */
+  .stage {
+    position:absolute; top:50%; left:50%;
+    width:var(--w); height:var(--h);
+    transform:translate(-50%,-50%) scale(1);
+    transform-origin:top left;
+    background:#000; border-radius:12px; overflow:hidden;
+    box-shadow:0 20px 60px rgba(0,0,0,.6);
   }
+  .close { position:absolute; top:8px; right:10px; z-index:2; border:0; background:rgba(0,0,0,.6); color:#fff; border-radius:8px; padding:6px 10px; font-size:16px; }
 
-  /* Iframe locked to native size for crispness */
-  .lightbox iframe {
-    display:block; border:0; width:var(--w); height:var(--h);
-    transform:none !important; zoom:1 !important; max-width:none !important;
-  }
+  /* keep the iframe at native size; we scale the parent instead */
+  .stage iframe { width:var(--w); height:var(--h); border:0; display:block; }
 </style>
 </head>
 <body>
-
   <h1>Play the Game</h1>
-  <p>Opens in a lightbox at the game’s native size (<strong>382 × 780</strong>) for a crisp view.</p>
-  <button class="btn btn-primary" id="openGame">Open Game</button>
-  <div class="hint">Tip: Ensure your browser zoom is 100%.</div>
+  <p>Opens in a lightbox and auto‑fits on mobile.</p>
+  <button class="btn" id="open">Open Game</button>
 
-  <!-- Lightbox -->
-  <div id="lightbox" class="lightbox" aria-hidden="true">
-    <div class="lightbox-content" role="dialog" aria-modal="true" aria-label="Game">
-      <button class="close-btn" id="closeGame" aria-label="Close">✕</button>
+  <div class="lightbox" id="box" aria-hidden="true">
+    <div class="stage" id="stage" role="dialog" aria-modal="true" aria-label="Game">
+      <button class="close" id="close" aria-label="Close">✕</button>
+      <!-- point to your Captivate HTML (the one you showed me) -->
       <iframe src="game.html" allowfullscreen></iframe>
     </div>
   </div>
 
 <script>
-  const lightbox = document.getElementById('lightbox');
-  const openBtn = document.getElementById('openGame');
-  const closeBtn = document.getElementById('closeGame');
+  const box   = document.getElementById('box');
+  const stage = document.getElementById('stage');
+  const openB = document.getElementById('open');
+  const closeB= document.getElementById('close');
 
-  openBtn.addEventListener('click', () => {
-    lightbox.classList.add('active');
-    lightbox.setAttribute('aria-hidden','false');
-  });
+  const NATIVE_W = 382, NATIVE_H = 780, PADDING = 24; // inner margin so it doesn’t kiss the edges
 
-  closeBtn.addEventListener('click', () => {
-    lightbox.classList.remove('active');
-    lightbox.setAttribute('aria-hidden','true');
-  });
+  function fit() {
+    const vw = Math.max(document.documentElement.clientWidth,  window.innerWidth  || 0);
+    const vh = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
+    const scale = Math.min(
+      (vw - PADDING*2) / NATIVE_W,
+      (vh - PADDING*2) / NATIVE_H,
+      1 // never upscale past native
+    );
+    stage.style.transform = `translate(-50%,-50%) scale(${scale})`;
+  }
 
-  // Close when clicking outside the content
-  lightbox.addEventListener('click', (e) => {
-    if (e.target === lightbox) {
-      lightbox.classList.remove('active');
-      lightbox.setAttribute('aria-hidden','true');
-    }
-  });
+  openB.addEventListener('click', () => { box.classList.add('active'); box.setAttribute('aria-hidden','false'); fit(); });
+  closeB.addEventListener('click', () => { box.classList.remove('active'); box.setAttribute('aria-hidden','true'); });
 
-  // Escape key to close
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && lightbox.classList.contains('active')) {
-      lightbox.classList.remove('active');
-      lightbox.setAttribute('aria-hidden','true');
-    }
-  });
+  // close on overlay tap
+  box.addEventListener('click', (e) => { if (e.target === box) closeB.click(); });
+
+  // keep it fitted on rotate/resize
+  window.addEventListener('resize', fit);
+  window.addEventListener('orientationchange', fit);
 </script>
-
 </body>
 </html>

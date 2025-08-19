@@ -3,41 +3,56 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
-<title>Game Lightbox</title>
+<title>Samsung Memory Game</title>
 <style>
-  :root { --w:382px; --h:780px; }
-  body { margin:0; font-family:system-ui, Arial, sans-serif; text-align:center; padding:2rem; }
+  :root { --w:382px; --h:780px; --scale:1; }
+  body { margin:0; font-family:system-ui, Arial, sans-serif; text-align:center; padding:2rem; background:#f8f8f8; }
 
-  .btn { padding:.75rem 1rem; border:0; border-radius:10px; background:#111; color:#fff; font-size:1rem; cursor:pointer; }
+  h1 { margin-top:0; }
+  .btn { padding:.75rem 1.25rem; border:0; border-radius:10px; background:#111; color:#fff; font-size:1rem; cursor:pointer; }
 
   /* overlay */
-  .lightbox { position:fixed; inset:0; background:rgba(0,0,0,.72); display:none; z-index:9999; }
-  .lightbox.active { display:block; }
+  .lightbox {
+    position: fixed; inset: 0;
+    display: none; align-items: center; justify-content: center;
+    background: rgba(0,0,0,.72);
+    z-index: 9999;
+    padding:
+      max(16px, env(safe-area-inset-top))
+      max(16px, env(safe-area-inset-right))
+      max(16px, env(safe-area-inset-bottom))
+      max(16px, env(safe-area-inset-left));
+  }
+  .lightbox.active { display:flex; }
 
-  /* the fixed‑size stage wrapper we scale */
+  /* stage scales from center */
   .stage {
-    position:absolute; top:50%; left:50%;
-    width:var(--w); height:var(--h);
-    transform:translate(-50%,-50%) scale(1);
-    transform-origin:top left;
+    position: relative;
+    width: var(--w); height: var(--h);
     background:#000; border-radius:12px; overflow:hidden;
     box-shadow:0 20px 60px rgba(0,0,0,.6);
+    transform: scale(var(--scale));
+    transform-origin: center center;
   }
-  .close { position:absolute; top:8px; right:10px; z-index:2; border:0; background:rgba(0,0,0,.6); color:#fff; border-radius:8px; padding:6px 10px; font-size:16px; }
 
-  /* keep the iframe at native size; we scale the parent instead */
   .stage iframe { width:var(--w); height:var(--h); border:0; display:block; }
+
+  .close {
+    position:absolute; top:10px; right:12px; z-index:2;
+    border:0; background:rgba(0,0,0,.6); color:#fff;
+    border-radius:8px; padding:6px 10px; font-size:16px; cursor:pointer;
+  }
 </style>
 </head>
 <body>
-  <h1>Play the Game</h1>
-  <p>Opens in a lightbox and auto‑fits on mobile.</p>
+  <h1>Play the Samsung Memory Game</h1>
+  <p>Click below to launch the game in a centered lightbox.</p>
   <button class="btn" id="open">Open Game</button>
 
   <div class="lightbox" id="box" aria-hidden="true">
     <div class="stage" id="stage" role="dialog" aria-modal="true" aria-label="Game">
       <button class="close" id="close" aria-label="Close">✕</button>
-      <!-- point to your Captivate HTML (the one you showed me) -->
+      <!-- Point this to your Captivate export -->
       <iframe src="game.html" allowfullscreen></iframe>
     </div>
   </div>
@@ -48,28 +63,44 @@
   const openB = document.getElementById('open');
   const closeB= document.getElementById('close');
 
-  const NATIVE_W = 382, NATIVE_H = 780, PADDING = 24; // inner margin so it doesn’t kiss the edges
+  const W = 382, H = 780;
+  const EDGE = 24; // breathing room from edges
 
-  function fit() {
-    const vw = Math.max(document.documentElement.clientWidth,  window.innerWidth  || 0);
-    const vh = Math.max(document.documentElement.clientHeight, window.innerHeight || 0);
-    const scale = Math.min(
-      (vw - PADDING*2) / NATIVE_W,
-      (vh - PADDING*2) / NATIVE_H,
-      1 // never upscale past native
-    );
-    stage.style.transform = `translate(-50%,-50%) scale(${scale})`;
+  function viewportSize() {
+    const vv = window.visualViewport;
+    return vv ? { w: vv.width, h: vv.height } :
+                { w: document.documentElement.clientWidth,
+                  h: document.documentElement.clientHeight };
   }
 
-  openB.addEventListener('click', () => { box.classList.add('active'); box.setAttribute('aria-hidden','false'); fit(); });
-  closeB.addEventListener('click', () => { box.classList.remove('active'); box.setAttribute('aria-hidden','true'); });
+  function fit() {
+    const { w, h } = viewportSize();
+    const maxW = Math.max(0, w - EDGE*2);
+    const maxH = Math.max(0, h - EDGE*2);
+    const scale = Math.min(maxW / W, maxH / H, 1); // never upscale
+    document.documentElement.style.setProperty('--scale', scale.toString());
+  }
+
+  openB.addEventListener('click', () => { 
+    box.classList.add('active'); 
+    box.setAttribute('aria-hidden','false'); 
+    fit(); 
+  });
+  closeB.addEventListener('click', () => { 
+    box.classList.remove('active'); 
+    box.setAttribute('aria-hidden','true'); 
+  });
 
   // close on overlay tap
-  box.addEventListener('click', (e) => { if (e.target === box) closeB.click(); });
+  box.addEventListener('click', e => { if (e.target === box) closeB.click(); });
 
-  // keep it fitted on rotate/resize
+  // refit on resize / rotate / URL bar slide
   window.addEventListener('resize', fit);
   window.addEventListener('orientationchange', fit);
+  if (window.visualViewport) {
+    visualViewport.addEventListener('resize', fit);
+    visualViewport.addEventListener('scroll', fit);
+  }
 </script>
 </body>
 </html>

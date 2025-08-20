@@ -7,12 +7,17 @@
 <style>
   :root { --w:382px; --h:780px; }
   body {
-    margin:0; font-family:system-ui, Arial, sans-serif;
-    text-align:center; padding:2rem; background:#f8f8f8;
+    margin:0;
+    font-family:system-ui, Arial, sans-serif;
+    text-align:center;
+    padding:2rem;
+    background:#2a6d89; /* match game background */
   }
-  h1 { margin-top:0; }
+  h1 { margin-top:0; color:#fff; }
+  p { color:#eee; }
   .btn {
-    padding:.75rem 1.25rem; border:0; border-radius:10px;
+    padding:.75rem 1.25rem;
+    border:0; border-radius:10px;
     background:#111; color:#fff; font-size:1rem; cursor:pointer;
   }
 
@@ -20,7 +25,9 @@
   .lightbox {
     position: fixed; inset: 0;
     display:none; align-items:center; justify-content:center;
-    background:rgba(0,0,0,.72); z-index:9999; overflow:hidden;
+    background:#2a6d89; /* same teal as body/game */
+    z-index: 9999;
+    overflow:hidden;
     padding:
       max(16px, env(safe-area-inset-top))
       max(16px, env(safe-area-inset-right))
@@ -29,7 +36,7 @@
   }
   .lightbox.active { display:flex; }
 
-  /* Stage: NO transform. We size it with real px to avoid sub-pixel crop */
+  /* Stage box */
   .stage {
     position:relative;
     width: var(--w); height: var(--h);
@@ -56,6 +63,7 @@
   <div class="lightbox" id="box" aria-hidden="true">
     <div class="stage" id="stage" role="dialog" aria-modal="true" aria-label="Game">
       <button class="close" id="close" aria-label="Close">✕</button>
+      <!-- Point this to your Captivate export -->
       <iframe src="game.html" allowfullscreen></iframe>
     </div>
   </div>
@@ -66,8 +74,8 @@
   const openB = document.getElementById('open');
   const closeB= document.getElementById('close');
 
-  const W = 382, H = 780;        // native size
-  const GAP = 2;                 // tiny safety margin (px)
+  const W = 382, H = 780;
+  const GAP = 2;
 
   function viewportSize() {
     const vv = window.visualViewport;
@@ -78,8 +86,6 @@
 
   function fitBoxToViewport() {
     const { w, h } = viewportSize();
-
-    // account for overlay padding (safe areas included)
     const cs   = getComputedStyle(box);
     const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
     const padY = parseFloat(cs.paddingTop)  + parseFloat(cs.paddingBottom);
@@ -87,10 +93,9 @@
     const availW = Math.max(0, w - padX - GAP);
     const availH = Math.max(0, h - padY - GAP);
 
-    // scale to fit, but never upscale beyond native
     const scale = Math.min(availW / W, availH / H, 1);
 
-    // use integer pixel sizes to avoid sub-pixel rounding crop
+    // integer px to avoid sub-pixel crop
     const targetW = Math.floor(W * scale);
     const targetH = Math.floor(H * scale);
 
@@ -109,10 +114,8 @@
     box.setAttribute('aria-hidden','true');
   });
 
-  // close if user taps outside the stage
   box.addEventListener('click', e => { if (e.target === box) closeB.click(); });
 
-  // refit on rotate/resize/URL bar transitions
   window.addEventListener('resize', fitBoxToViewport);
   window.addEventListener('orientationchange', fitBoxToViewport);
   if (window.visualViewport) {

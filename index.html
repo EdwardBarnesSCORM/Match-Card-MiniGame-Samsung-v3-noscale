@@ -11,10 +11,10 @@
     font-family:system-ui, Arial, sans-serif;
     text-align:center;
     padding:2rem;
-    background:#2a6d89; /* match game background */
+    background:#ffffff; /* page background = white */
   }
-  h1 { margin-top:0; color:#fff; }
-  p { color:#eee; }
+  h1 { margin-top:0; color:#000; }
+  p { color:#333; }
   .btn {
     padding:.75rem 1.25rem;
     border:0; border-radius:10px;
@@ -25,7 +25,7 @@
   .lightbox {
     position: fixed; inset: 0;
     display:none; align-items:center; justify-content:center;
-    background:#2a6d89; /* same teal as body/game */
+    background:#48758a; /* lightbox background = teal */
     z-index: 9999;
     overflow:hidden;
     padding:
@@ -57,7 +57,7 @@
 </head>
 <body>
   <h1>Play the Samsung Memory Game</h1>
-  <p>Opens in a lightbox emulator, similar to how it would look on a LMS (Samsung Circle) THIS EMULATED VERSION IS NOT DESIGNED FOR MOBILE. For mobile use this link: https://edwardbarnesscorm.github.io/Match-Cards-MiniGame-Samsung-v2</p>
+  <p>Opens in a centered lightbox.</p>
   <button class="btn" id="open">Open Game</button>
 
   <div class="lightbox" id="box" aria-hidden="true">

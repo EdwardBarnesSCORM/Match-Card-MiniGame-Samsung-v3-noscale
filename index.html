@@ -1,79 +1,138 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Samsung Pro PAir-Up Memory Game</title>
-  <style>
-    body {
-      margin: 0;
-      background: #48758a; /* page background same as overlay */
-      font-family: Arial, sans-serif;
-    }
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<title>Samsung Memory Game</title>
+<style>
+  :root { --w:382px; --h:780px; }
 
-    /* Overlay (teal, full screen) */
-    .lightbox-overlay {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: #48758a;
-      z-index: 9999;
-    }
+  /* Page (behind the lightbox) */
+  body {
+    margin:0;
+    font-family:system-ui, Arial, sans-serif;
+    text-align:center;
+    padding:2rem;
+    background:#48758a; /* page bg = teal */
+    color:#fff;
+  }
+  h1 { margin-top:0; }
+  .btn {
+    padding:.75rem 1.25rem;
+    border:0; border-radius:10px;
+    background:#111; color:#fff; font-size:1rem; cursor:pointer;
+  }
 
-    /* Stage (the game content container) */
-    .lightbox-content {
-      position: relative;
-      width: 382px;
-      height: 780px;
-      background: white; /* game background */
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-    }
+  /* Lightbox overlay */
+  .lightbox {
+    position: fixed; inset: 0;
+    display:none; align-items:center; justify-content:center;
+    background:#48758a;      /* overlay bg = teal */
+    z-index:9999;
+    overflow:hidden;
+    padding:
+      max(16px, env(safe-area-inset-top))
+      max(16px, env(safe-area-inset-right))
+      max(16px, env(safe-area-inset-bottom))
+      max(16px, env(safe-area-inset-left));
+  }
+  .lightbox.active { display:flex; }
 
-    .lightbox-content iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-      display: block;
-    }
+  /* Stage box that holds the game iframe */
+  .stage {
+    position:relative;
+    width: var(--w); height: var(--h);
+    background:#000;                /* behind the game */
+    border-radius:16px; overflow:hidden;
+    box-shadow:0 20px 60px rgba(0,0,0,.6);
+    box-sizing:border-box;
+    margin:auto;                    /* centers even with rounded sizes */
+  }
+  .stage iframe {
+    width:100%; height:100%;
+    border:0; display:block;
+  }
 
-    /* Close button */
-    .close-btn {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: rgba(0,0,0,0.6);
-      color: #fff;
-      border: none;
-      font-size: 20px;
-      cursor: pointer;
-      padding: 4px 8px;
-      border-radius: 4px;
-      z-index: 10000;
-    }
-
-    /* Responsive scaling safeguard */
-    @media (max-width: 400px) {
-      .lightbox-content {
-        width: 95%;
-        height: auto;
-        aspect-ratio: 382/780;
-      }
-    }
-  </style>
+  .close {
+    position:absolute; top:10px; right:12px; z-index:2;
+    border:0; background:rgba(0,0,0,.6); color:#fff;
+    border-radius:8px; padding:6px 10px; font-size:16px; cursor:pointer;
+  }
+</style>
 </head>
 <body>
-  <div class="lightbox-overlay">
-    <div class="lightbox-content">
-      <button class="close-btn" onclick="document.querySelector('.lightbox-overlay').style.display='none'">✕</button>
-      <iframe src="game.html"></iframe>
+  <h1>Play the Samsung Memory Game</h1>
+  <p>Opens in a centered lightbox and auto-fits on mobile.</p>
+  <button class="btn" id="open">Open Game</button>
+
+  <div class="lightbox" id="box" aria-hidden="true">
+    <div class="stage" id="stage" role="dialog" aria-modal="true" aria-label="Game">
+      <button class="close" id="close" aria-label="Close">✕</button>
+      <!-- Your Captivate export -->
+      <iframe src="game.html" allowfullscreen></iframe>
     </div>
   </div>
+
+<script>
+  const box   = document.getElementById('box');
+  const stage = document.getElementById('stage');
+  const openB = document.getElementById('open');
+  const closeB= document.getElementById('close');
+
+  // Native game size
+  const W = 382, H = 780;
+  const GAP = 2; // tiny safety margin so rounding never overflows
+
+  function viewportSize() {
+    const vv = window.visualViewport;
+    return vv ? { w: vv.width, h: vv.height }
+              : { w: document.documentElement.clientWidth,
+                  h: document.documentElement.clientHeight };
+  }
+
+  function fitBoxToViewport() {
+    const { w, h } = viewportSize();
+
+    // overlay padding (includes safe-area insets)
+    const cs   = getComputedStyle(box);
+    const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+    const padY = parseFloat(cs.paddingTop)  + parseFloat(cs.paddingBottom);
+
+    const availW = Math.max(0, w - padX - GAP);
+    const availH = Math.max(0, h - padY - GAP);
+
+    // scale to fit (never upscale)
+    const scale = Math.min(availW / W, availH / H, 1);
+
+    // Rounded pixel sizes prevent sub-pixel slivers; centered via margin:auto
+    const targetW = Math.round(W * scale);
+    const targetH = Math.round(H * scale);
+
+    stage.style.width  = targetW + 'px';
+    stage.style.height = targetH + 'px';
+  }
+
+  openB.addEventListener('click', () => {
+    box.classList.add('active');
+    box.setAttribute('aria-hidden','false');
+    fitBoxToViewport();
+  });
+
+  closeB.addEventListener('click', () => {
+    box.classList.remove('active');
+    box.setAttribute('aria-hidden','true');
+  });
+
+  // Close when tapping outside the stage
+  box.addEventListener('click', e => { if (e.target === box) closeB.click(); });
+
+  // Keep fitted on orientation/resize and mobile URL bar movement
+  window.addEventListener('resize', fitBoxToViewport);
+  window.addEventListener('orientationchange', fitBoxToViewport);
+  if (window.visualViewport) {
+    visualViewport.addEventListener('resize', fitBoxToViewport);
+    visualViewport.addEventListener('scroll', fitBoxToViewport);
+  }
+</script>
 </body>
 </html>

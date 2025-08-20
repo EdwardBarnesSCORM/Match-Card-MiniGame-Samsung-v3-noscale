@@ -6,15 +6,17 @@
 <title>Samsung Memory Game</title>
 <style>
   :root { --w:382px; --h:780px; }
+
+  /* Page (behind the lightbox) */
   body {
     margin:0;
     font-family:system-ui, Arial, sans-serif;
     text-align:center;
     padding:2rem;
-    background:#ffffff; /* page background = white */
+    background:#ffffff; /* page bg = white */
+    color:#000;
   }
-  h1 { margin-top:0; color:#000; }
-  p { color:#333; }
+  h1 { margin-top:0; }
   .btn {
     padding:.75rem 1.25rem;
     border:0; border-radius:10px;
@@ -25,8 +27,8 @@
   .lightbox {
     position: fixed; inset: 0;
     display:none; align-items:center; justify-content:center;
-    background:#48758a; /* lightbox background = teal */
-    z-index: 9999;
+    background:#48758a;      /* overlay bg = teal */
+    z-index:9999;
     overflow:hidden;
     padding:
       max(16px, env(safe-area-inset-top))
@@ -36,16 +38,19 @@
   }
   .lightbox.active { display:flex; }
 
-  /* Stage box */
+  /* Stage box that holds the game iframe */
   .stage {
     position:relative;
     width: var(--w); height: var(--h);
-    background:#000; border-radius:12px; overflow:hidden;
+    background:#000;                /* inner frame behind game */
+    border-radius:12px; overflow:hidden;
     box-shadow:0 20px 60px rgba(0,0,0,.6);
     box-sizing:border-box;
+    margin:auto;                    /* keep centered even when rounded sizes are used */
   }
   .stage iframe {
-    width:100%; height:100%; border:0; display:block;
+    width:100%; height:100%;
+    border:0; display:block;
   }
 
   .close {
@@ -63,7 +68,7 @@
   <div class="lightbox" id="box" aria-hidden="true">
     <div class="stage" id="stage" role="dialog" aria-modal="true" aria-label="Game">
       <button class="close" id="close" aria-label="Close">✕</button>
-      <!-- Point this to your Captivate export -->
+      <!-- Your Captivate export -->
       <iframe src="game.html" allowfullscreen></iframe>
     </div>
   </div>
@@ -74,8 +79,9 @@
   const openB = document.getElementById('open');
   const closeB= document.getElementById('close');
 
+  // Native game size
   const W = 382, H = 780;
-  const GAP = 2;
+  const GAP = 2; // small safety margin so rounding never overflows
 
   function viewportSize() {
     const vv = window.visualViewport;
@@ -86,6 +92,8 @@
 
   function fitBoxToViewport() {
     const { w, h } = viewportSize();
+
+    // overlay padding (includes safe-area insets)
     const cs   = getComputedStyle(box);
     const padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
     const padY = parseFloat(cs.paddingTop)  + parseFloat(cs.paddingBottom);
@@ -93,11 +101,13 @@
     const availW = Math.max(0, w - padX - GAP);
     const availH = Math.max(0, h - padY - GAP);
 
+    // compute scale (never upscale)
     const scale = Math.min(availW / W, availH / H, 1);
 
-    // integer px to avoid sub-pixel crop
-    const targetW = Math.floor(W * scale);
-    const targetH = Math.floor(H * scale);
+    // Use rounded pixel sizes to avoid sub-pixel gaps,
+    // and center via margin:auto (stage CSS) so any remainder splits evenly.
+    const targetW = Math.round(W * scale);
+    const targetH = Math.round(H * scale);
 
     stage.style.width  = targetW + 'px';
     stage.style.height = targetH + 'px';
@@ -114,8 +124,10 @@
     box.setAttribute('aria-hidden','true');
   });
 
+  // Close when tapping outside the stage
   box.addEventListener('click', e => { if (e.target === box) closeB.click(); });
 
+  // Keep fitted on orientation/resize and mobile URL bar movement
   window.addEventListener('resize', fitBoxToViewport);
   window.addEventListener('orientationchange', fitBoxToViewport);
   if (window.visualViewport) {
